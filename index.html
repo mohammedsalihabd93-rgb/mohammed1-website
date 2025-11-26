@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام الدخول الآمن مع الخريطة</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: #333;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        /* تصميم صفحة الدخول */
+        .login-container {
+            background-color: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 450px;
+            transition: all 0.5s ease;
+        }
+        
+        .login-container.hidden {
+            display: none;
+        }
+        
+        h2 {
+            text-align: center;
+            color: #2a5298;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+        
+        input[type="text"]:focus,
+        input[type="password"]:focus {
+            border-color: #2a5298;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(42, 82, 152, 0.2);
+        }
+        
+        button {
+            padding: 12px;
+            background-color: #2a5298;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: background-color 0.3s;
+            margin-top: 10px;
+        }
+        
+        .btn-full {
+            width: 100%;
+        }
+        
+        button:hover {
+            background-color: #1e3c72;
+        }
+        
+        .btn-success {
+            background-color: #27ae60;
+        }
+        
+        .btn-success:hover {
+            background-color: #219653;
+        }
+        
+        .btn-danger {
+            background-color: #e74c3c;
+        }
+        
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+        
+        .error-message {
+            color: #e74c3c;
+            text-align: center;
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #fadbd8;
+            border-radius: 5px;
+            display: none;
+        }
+        
+        .success-message {
+            color: #27ae60;
+            text-align: center;
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #d5f4e6;
+            border-radius: 5px;
+            display: none;
+        }
+        
+        /* تصميم لوحة التحكم مع الخريطة */
+        .dashboard {
+            width: 100%;
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            display: none;
+        }
+        
+        .dashboard-header {
+            background-color: #2a5298;
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .dashboard-header h1 {
+            font-size: 24px;
+        }
+        
+        .header-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .dashboard-content {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .welcome-message {
+            text-align: center;
+            color: #2a5298;
+            margin-bottom: 10px;
+        }
+        
+        #map {
+            height: 500px;
+            width: 100%;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .map-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .map-controls button {
+            width: auto;
+            padding: 8px 15px;
+            background-color: #3498db;
+        }
+        
+        .map-controls button:hover {
+            background-color: #2980b9;
+        }
+        
+        /* تصميم صفحة الإعدادات */
+        .settings-container {
+            background-color: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 500px;
+            display: none;
+        }
+        
+        .settings-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .settings-buttons button {
+            flex: 1;
+        }
+        
+        /* تصميم متجاوب */
+        @media (max-width: 768px) {
+            .login-container, .settings-container {
+                padding: 25px;
+            }
+            
+            #map {
+                height: 400px;
+            }
+            
+            .dashboard-header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            
+            .header-buttons {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .login-container, .settings-container {
+                padding: 20px;
+            }
+            
+            #map {
+                height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- صفحة تسجيل الدخول -->
+        <div class="login-container" id="loginContainer">
+            <h2>تسجيل الدخول إلى النظام</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">اسم المستخدم:</label>
+                    <input type="text" id="username" name="username" required placeholder="أدخل اسم المستخدم">
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">كلمة المرور:</label>
+                    <input type="password" id="password" name="password" required placeholder="أدخل كلمة المرور">
+                </div>
+                
+                <button type="submit" class="btn-full">تسجيل الدخول</button>
+            </form>
+            <div class="error-message" id="errorMessage">اسم المستخدم أو كلمة المرور غير صحيحة!</div>
+        </div>
+        
+        <!-- لوحة التحكم مع الخريطة -->
+        <div class="dashboard" id="dashboard">
+            <div class="dashboard-header">
+                <h1>لوحة التحكم - النظام الآمن</h1>
+                <div class="header-buttons">
+                    <button class="btn-success" id="settingsBtn">الإعدادات</button>
+                    <button class="btn-danger" id="logoutBtn">تسجيل الخروج</button>
+                </div>
+            </div>
+            
+            <div class="dashboard-content">
+                <h2 class="welcome-message" id="welcomeMessage">مرحباً بك في النظام!</h2>
+                
+                <div id="map"></div>
+                
+                <div class="map-controls">
+                    <button id="locateBtn">تحديد موقعي</button>
+                    <button id="resetBtn">إعادة تعيين الخريطة</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- صفحة الإعدادات -->
+        <div class="settings-container" id="settingsContainer">
+            <h2>إعدادات الحساب</h2>
+            <form id="settingsForm">
+                <div class="form-group">
+                    <label for="currentUsername">اسم المستخدم الحالي:</label>
+                    <input type="text" id="currentUsername" readonly>
+                </div>
+                
+                <div class="form-group">
+                    <label for="newUsername">اسم المستخدم الجديد:</label>
+                    <input type="text" id="newUsername" placeholder="أدخل اسم المستخدم الجديد">
+                </div>
+                
+                <div class="form-group">
+                    <label for="currentPassword">كلمة المرور الحالية:</label>
+                    <input type="password" id="currentPassword" placeholder="أدخل كلمة المرور الحالية">
+                </div>
+                
+                <div class="form-group">
+                    <label for="newPassword">كلمة المرور الجديدة:</label>
+                    <input type="password" id="newPassword" placeholder="أدخل كلمة المرور الجديدة">
+                </div>
+                
+                <div class="form-group">
+                    <label for="confirmPassword">تأكيد كلمة المرور الجديدة:</label>
+                    <input type="password" id="confirmPassword" placeholder="أعد إدخال كلمة المرور الجديدة">
+                </div>
+                
+                <div class="settings-buttons">
+                    <button type="submit" class="btn-success">حفظ التغييرات</button>
+                    <button type="button" class="btn-danger" id="cancelSettings">إلغاء</button>
+                </div>
+            </form>
+            <div class="error-message" id="settingsErrorMessage"></div>
+            <div class="success-message" id="settingsSuccessMessage"></div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // بيانات المستخدمين المسموح لهم بالدخول
+        let validUsers = [
+            { username: "admin", password: "1234", name: "مدير النظام" },
+            { username: "user", password: "pass", name: "مستخدم عادي" },
+            { username: "test", password: "test", name: "مستخدم تجريبي" }
+        ];
+        
+        // المستخدم الحالي
+        let currentUser = null;
+        
+        // عناصر DOM
+        const loginContainer = document.getElementById('loginContainer');
+        const dashboard = document.getElementById('dashboard');
+        const settingsContainer = document.getElementById('settingsContainer');
+        const loginForm = document.getElementById('loginForm');
+        const settingsForm = document.getElementById('settingsForm');
+        const errorMessage = document.getElementById('errorMessage');
+        const settingsErrorMessage = document.getElementById('settingsErrorMessage');
+        const settingsSuccessMessage = document.getElementById('settingsSuccessMessage');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const settingsBtn = document.getElementById('settingsBtn');
+        const cancelSettings = document.getElementById('cancelSettings');
+        const welcomeMessage = document.getElementById('welcomeMessage');
+        const locateBtn = document.getElementById('locateBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const currentUsername = document.getElementById('currentUsername');
+        
+        // متغيرات الخريطة
+        let map;
+        let userMarker;
+        
+        // تهيئة الخريطة
+        function initMap() {
+            // إنشاء الخريطة مع عرض خريطة العالم
+            map = L.map('map').setView([20, 0], 2);
+            
+            // إضافة طبقة الخريطة من OpenStreetMap
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+            
+            // إضافة علامة الموقع الافتراضي
+            userMarker = L.marker([20, 0]).addTo(map)
+                .bindPopup('موقع البداية')
+                .openPopup();
+        }
+        
+        // تحديد موقع المستخدم
+        function locateUser() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        const userLat = position.coords.latitude;
+                        const userLng = position.coords.longitude;
+                        
+                        // نقل الخريطة إلى موقع المستخدم
+                        map.setView([userLat, userLng], 13);
+                        
+                        // تحديث موقع العلامة
+                        userMarker.setLatLng([userLat, userLng])
+                            .bindPopup('أنت هنا!')
+                            .openPopup();
+                    },
+                    function(error) {
+                        alert('تعذر الحصول على موقعك: ' + error.message);
+                    }
+                );
+            } else {
+                alert('متصفحك لا يدخدم خاصية تحديد الموقع');
+            }
+        }
+        
+        // إعادة تعيين الخريطة
+        function resetMap() {
+            map.setView([20, 0], 2);
+            userMarker.setLatLng([20, 0])
+                .bindPopup('موقع البداية')
+                .openPopup();
+        }
+        
+        // معالجة تسجيل الدخول
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            // التحقق من بيانات الدخول
+            const validUser = validUsers.find(user => 
+                user.username === username && user.password === password
+            );
+            
+            if (validUser) {
+                // تسجيل الدخول ناجح
+                currentUser = validUser;
+                loginContainer.classList.add('hidden');
+                dashboard.style.display = 'block';
+                welcomeMessage.textContent = `مرحباً ${validUser.name} في النظام الآمن!`;
+                
+                // تهيئة الخريطة بعد تسجيل الدخول
+                setTimeout(initMap, 100);
+            } else {
+                // تسجيل الدخول فاشل
+                errorMessage.style.display = 'block';
+                setTimeout(() => {
+                    errorMessage.style.display = 'none';
+                }, 3000);
+            }
+        });
+        
+        // معالجة تسجيل الخروج
+        logoutBtn.addEventListener('click', function() {
+            dashboard.style.display = 'none';
+            settingsContainer.style.display = 'none';
+            loginContainer.classList.remove('hidden');
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            currentUser = null;
+        });
+        
+        // فتح صفحة الإعدادات
+        settingsBtn.addEventListener('click', function() {
+            dashboard.style.display = 'none';
+            settingsContainer.style.display = 'block';
+            currentUsername.value = currentUser.username;
+            
+            // مسح الحقول
+            document.getElementById('newUsername').value = '';
+            document.getElementById('currentPassword').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+            settingsErrorMessage.style.display = 'none';
+            settingsSuccessMessage.style.display = 'none';
+        });
+        
+        // إغلاق صفحة الإعدادات
+        cancelSettings.addEventListener('click', function() {
+            settingsContainer.style.display = 'none';
+            dashboard.style.display = 'block';
+        });
+        
+        // معالجة تغيير الإعدادات
+        settingsForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const newUsername = document.getElementById('newUsername').value;
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            // التحقق من كلمة المرور الحالية
+            if (currentPassword !== currentUser.password) {
+                settingsErrorMessage.textContent = 'كلمة المرور الحالية غير صحيحة!';
+                settingsErrorMessage.style.display = 'block';
+                settingsSuccessMessage.style.display = 'none';
+                return;
+            }
+            
+            // التحقق من تطابق كلمات المرور الجديدة
+            if (newPassword && newPassword !== confirmPassword) {
+                settingsErrorMessage.textContent = 'كلمات المرور الجديدة غير متطابقة!';
+                settingsErrorMessage.style.display = 'block';
+                settingsSuccessMessage.style.display = 'none';
+                return;
+            }
+            
+            // التحقق من عدم استخدام اسم المستخدم الجديد من قبل
+            if (newUsername && newUsername !== currentUser.username) {
+                const usernameExists = validUsers.some(user => 
+                    user.username === newUsername && user.username !== currentUser.username
+                );
+                
+                if (usernameExists) {
+                    settingsErrorMessage.textContent = 'اسم المستخدم الجديد مستخدم بالفعل!';
+                    settingsErrorMessage.style.display = 'block';
+                    settingsSuccessMessage.style.display = 'none';
+                    return;
+                }
+            }
+            
+            // تحديث بيانات المستخدم
+            if (newUsername) {
+                currentUser.username = newUsername;
+                currentUser.name = newUsername; // يمكنك تغيير هذا ليكون حقل منفصل
+            }
+            
+            if (newPassword) {
+                currentUser.password = newPassword;
+            }
+            
+            // تحديث بيانات المستخدم في المصفوفة
+            const userIndex = validUsers.findIndex(user => user.username === currentUser.username);
+            if (userIndex !== -1) {
+                validUsers[userIndex] = currentUser;
+            }
+            
+            // عرض رسالة النجاح
+            settingsSuccessMessage.textContent = 'تم حفظ التغييرات بنجاح!';
+            settingsSuccessMessage.style.display = 'block';
+            settingsErrorMessage.style.display = 'none';
+            
+            // تحديث اسم المستخدم الحالي في الحقل
+            currentUsername.value = currentUser.username;
+            
+            // إخفاء الرسالة بعد 3 ثواني
+            setTimeout(() => {
+                settingsSuccessMessage.style.display = 'none';
+            }, 3000);
+        });
+        
+        // أحداث أزرار الخريطة
+        locateBtn.addEventListener('click', locateUser);
+        resetBtn.addEventListener('click', resetMap);
+    </script>
+</body>
+</html>
